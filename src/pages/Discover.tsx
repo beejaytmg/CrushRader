@@ -21,14 +21,18 @@ interface User {
 const Discover = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+
+
   const [selectedCrushes, setSelectedCrushes] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [existingCrushes, setExistingCrushes] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
   }, []);
+
 
   const loadData = async () => {
     try {
@@ -74,6 +78,23 @@ const Discover = () => {
         setUsers([]);
       }
 
+      // Load existing crushes if user is authenticated
+      if (user) {
+        const { data: crushes, error: crushError } = await supabase
+          .from("crushes")
+          .select("receiver_id")
+          .eq("sender_id", user.id);
+
+        if (crushError) {
+          console.error("Error loading existing crushes:", crushError);
+        } else {
+          const crushIds = crushes?.map(crush => crush.receiver_id) || [];
+          setExistingCrushes(crushIds);
+          setSelectedCrushes(crushIds);
+          console.log("Loaded existing crushes:", crushIds);
+        }
+      }
+
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
@@ -86,18 +107,64 @@ const Discover = () => {
     }
   };
 
-  const handleCrushSelect = (userId: string) => {
-    if (selectedCrushes.includes(userId)) {
-      setSelectedCrushes(selectedCrushes.filter((id) => id !== userId));
+
+  const handleCrushSelect = async (userId: string) => {
+    try {
+      if (!currentUserId) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to select crushes.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (selectedCrushes.includes(userId)) {
+        // Remove crush from database
+        const { error } = await supabase
+          .from("crushes")
+          .delete()
+          .eq("sender_id", currentUserId)
+          .eq("receiver_id", userId);
+
+        if (error) throw error;
+
+        // Update local state
+        setSelectedCrushes(selectedCrushes.filter((id) => id !== userId));
+        setExistingCrushes(existingCrushes.filter((id) => id !== userId));
+        
+        toast({
+          title: "Crush Removed",
+          description: "Your selection has been updated.",
+        });
+      } else {
+
+        // Add crush to database
+        const { error } = await supabase
+          .from("crushes")
+          .insert({
+            sender_id: currentUserId,
+            receiver_id: userId
+          });
+
+        if (error) throw error;
+
+
+        // Update local state
+        setSelectedCrushes([...selectedCrushes, userId]);
+        setExistingCrushes([...existingCrushes, userId]);
+        
+        toast({
+          title: "Crush Added! 💚",
+          description: "They'll never know unless it's mutual.",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error saving crush:", error);
       toast({
-        title: "Crush Removed",
-        description: "Your selection has been updated.",
-      });
-    } else {
-      setSelectedCrushes([...selectedCrushes, userId]);
-      toast({
-        title: "Crush Added! 💚",
-        description: "They'll never know unless it's mutual.",
+        title: "Error",
+        description: error.message || "Failed to save crush selection. Please try again.",
+        variant: "destructive",
       });
     }
   };

@@ -120,7 +120,18 @@ const Landing = () => {
               <Heart className="w-5 h-5" />
               Start Finding Matches
             </Button>
-            <Button variant="glass" size="xl" className="w-full sm:w-auto">
+
+            <Button 
+              variant="glass" 
+              size="xl" 
+              className="w-full sm:w-auto"
+              onClick={() => {
+                const howItWorksSection = document.getElementById('how-it-works');
+                if (howItWorksSection) {
+                  howItWorksSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            >
               <Eye className="w-5 h-5" />
               How It Works
             </Button>
@@ -197,8 +208,9 @@ const Landing = () => {
         </div>
       </section>
 
+
       {/* How It Works Section */}
-      <section className="relative z-10 container mx-auto px-6 py-24">
+      <section id="how-it-works" className="relative z-10 container mx-auto px-6 py-24">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -267,7 +279,7 @@ const Landing = () => {
               <span className="font-semibold">CrushRadar</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 CrushRadar. Your secrets are safe with us.
+              © 2025 CrushRadar. Developers are in relationship though.
             </p>
           </div>
         </div>
